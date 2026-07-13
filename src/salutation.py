@@ -28,7 +28,7 @@ def get_salutation(customer: dict) -> tuple[str, str]:
     """Return (cal_khach, xung_minh).
 
     cal_khach: cách gọi khách (em / anh / chị / chú / cô)
-    xung_minh: cách shop xưng  (anh / em / cháu)
+    xung_minh: cách mình xưng  (anh / em / cháu)
     """
     birth_str = str(customer.get("birth_date", "")).strip()
     gender = str(customer.get("gender", "")).strip()

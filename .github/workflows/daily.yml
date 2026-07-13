@@ -29,4 +29,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Kill-switch: đặt repo variable USE_AI=0 để tắt Gemini (dùng template)
+          # mà không cần xoá secret hay sửa code. Mặc định 1 (bật AI).
+          USE_AI: ${{ vars.USE_AI || '1' }}
         run: python -m src.main

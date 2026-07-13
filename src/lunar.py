@@ -1,13 +1,17 @@
 """
 Vietnamese lunar calendar — Hồ Ngọc Đức algorithm (UTC+7).
 Reference: http://www.informatik.uni-leipzig.de/~duc/amlich/
-Only public API needed by this project: tet_solar_date(year) -> date
+Public API: tet_solar_date(year) -> date ; lunar_year_name(solar_year) -> str
 """
 
 import math
 from datetime import date
 
 _TZ = 7  # UTC+7
+
+# Can-chi (thiên can / địa chi) để đặt tên năm âm lịch.
+_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
+_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
 
 
 # ---------------------------------------------------------------------------
@@ -168,3 +172,8 @@ def tet_solar_date(year: int) -> date:
     tet_jd = _get_new_moon_day(k + months_after_11, _TZ)
     dd, mm, yyyy = _jd_to_date(tet_jd)
     return date(yyyy, mm, dd)
+
+
+def lunar_year_name(solar_year: int) -> str:
+    """Tên can-chi của năm âm lịch mà Tết rơi vào solar_year, e.g. 'Ất Tỵ'."""
+    return f"{_CAN[(solar_year - 4) % 10]} {_CHI[(solar_year - 4) % 12]}"

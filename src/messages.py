@@ -1,12 +1,16 @@
 """
-Template engine — Phase 1 (fixed templates, no AI).
+Message builder — Phase 1 template + Phase 2 Gemini.
+
+`build_message` ưu tiên gọi Gemini (`gemini.generate_wishes`); nếu AI bị tắt,
+thiếu key hoặc lỗi thì rơi về template cố định của Phase 1. Cả hai nguồn dùng
+chung lớp trình bày Telegram (`_wrap_telegram`).
 
 Public API:
     build_message(event, salutation) -> str   (Telegram HTML string)
 
 Template variables available in each string:
     {cal}        cách gọi khách   (em / anh / chị / chú / cô)
-    {name}       tên khách        (HTML-escaped)
+    {name}       tên khách        (thay CUỐI cùng; escape ở bước đóng khung)
     {xung}       mình xưng        (anh / em / cháu)
     {Xung}       mình xưng — viết hoa đầu câu
     {year}       năm dương lịch   (tet_duong)
@@ -19,19 +23,8 @@ import html
 import random
 
 from src.events import Event
-
-# ---------------------------------------------------------------------------
-# Vietnamese can-chi year names
-# ---------------------------------------------------------------------------
-
-_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
-_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
-
-
-def _lunar_year_name(solar_year: int) -> str:
-    """Return the can-chi name for the lunar year of Tết in solar_year."""
-    return f"{_CAN[(solar_year - 4) % 10]} {_CHI[(solar_year - 4) % 12]}"
-
+from src.gemini import generate_wishes
+from src.lunar import lunar_year_name
 
 # ---------------------------------------------------------------------------
 # Message templates
@@ -40,40 +33,40 @@ def _lunar_year_name(solar_year: int) -> str:
 
 _TEMPLATES: dict[tuple[str, str], list[str]] = {
     ("birthday", "T-0"): [
-        "Chúc {cal} {name} sinh nhật vui vẻ! Chúc {cal} luôn mạnh khoẻ, bình an và tràn đầy niềm vui. Shop cảm ơn {cal} đã đồng hành cùng mình nhé! 🎂🎉",
-        "Happy Birthday {cal} {name}! {Xung} kính chúc {cal} một ngày sinh nhật thật đặc biệt, mọi điều ước đều thành hiện thực ạ 🎉🥳",
-        "{Xung} chúc {cal} {name} sinh nhật vui vẻ! Tuổi mới nhiều sức khoẻ, hạnh phúc và thành công trong cuộc sống nhé 🌸",
-        "Chúc mừng sinh nhật {cal} {name}! Chúc {cal} ngày sinh nhật thật trọn vẹn, sức khoẻ dồi dào và vạn sự như ý ạ 🎂",
+        "Chúc mừng sinh nhật {cal} {name}! {Xung} kính chúc {cal} một tuổi mới thật nhiều sức khoẻ, bình an và mọi việc hanh thông ạ.",
+        "{Xung} xin gửi tới {cal} {name} lời chúc sinh nhật vui vẻ, an lành. Chúc {cal} luôn dồi dào sức khoẻ và gặt hái nhiều thành công trong năm nay nhé.",
+        "Happy Birthday {cal} {name}! Chúc {cal} một ngày sinh nhật ấm áp bên gia đình, tuổi mới nhiều niềm vui và may mắn ạ 🎂",
+        "Nhân ngày sinh nhật, {xung} chúc {cal} {name} luôn mạnh khoẻ, tinh thần thoải mái và công việc thuận lợi. Chúc {cal} có một ngày thật ý nghĩa nhé.",
     ],
     ("birthday", "T-1"): [
-        "Ngày mai là sinh nhật của {cal} {name} rồi! {Xung} xin gửi lời chúc sớm: chúc {cal} sinh nhật vui vẻ, luôn mạnh khoẻ và hạnh phúc nhé 🎂",
-        "Sắp đến sinh nhật {cal} {name} rồi! {Xung} kính chúc {cal} tuổi mới tràn đầy niềm vui, sức khoẻ dồi dào và mọi ước mơ đều thành sự thật ạ 🌸🎉",
-        "{Xung} muốn chúc mừng sinh nhật sớm đến {cal} {name}! Chúc {cal} luôn vui vẻ, khoẻ mạnh và thành công trong năm tuổi mới nhé 🥳",
-        "Ngày mai {cal} {name} sinh nhật! Chúc {cal} tuổi mới an khang, vạn sự như ý và gia đình hạnh phúc ạ 🎂🎊",
+        "Ngày mai là sinh nhật {cal} {name} rồi! {Xung} xin gửi lời chúc sớm: chúc {cal} tuổi mới nhiều sức khoẻ, bình an và mọi điều tốt lành ạ.",
+        "{Xung} chúc mừng sinh nhật {cal} {name} trước một ngày. Chúc {cal} luôn mạnh khoẻ, vui vẻ và thành công trong công việc cũng như cuộc sống nhé.",
+        "Sắp tới sinh nhật {cal} {name} rồi. {Xung} kính chúc {cal} một tuổi mới an khang, thuận lợi và thật nhiều niềm vui ạ 🎂",
+        "Ngày mai {cal} {name} thêm một tuổi mới. Chúc {cal} luôn giữ được sức khoẻ, sự bình an và gặt hái nhiều điều như ý trong năm nay nhé.",
     ],
     ("tet_duong", "T-0"): [
-        "Chúc mừng năm mới {year}! {Xung} kính chúc {cal} {name} năm mới an khang thịnh vượng, vạn sự như ý và gia đình hạnh phúc ạ 🎊🎆",
-        "Happy New Year {cal} {name}! Chúc {cal} năm {year} tràn đầy sức khoẻ, may mắn và thành công trong mọi việc nhé 🥳🎉",
-        "Chúc {cal} {name} năm mới {year} bình an, thịnh vượng! Shop cảm ơn {cal} và kính chúc {cal} một năm mới thật tươi đẹp ạ 🎆🌟",
-        "{Xung} kính chúc {cal} {name} năm mới {year} dồi dào sức khoẻ, công việc thuận lợi và gia đình sum vầy hạnh phúc 🎊",
+        "Chúc mừng năm mới {year}! {Xung} kính chúc {cal} {name} một năm dồi dào sức khoẻ, an khang và mọi việc hanh thông ạ.",
+        "Nhân dịp năm mới {year}, {xung} xin gửi tới {cal} {name} lời chúc bình an, may mắn và thành công. Chúc {cal} cùng gia đình một năm thật trọn vẹn nhé.",
+        "Happy New Year {cal} {name}! Chúc {cal} bước sang năm {year} với thật nhiều sức khoẻ, niềm vui và tài lộc ạ 🎉",
+        "{Xung} kính chúc {cal} {name} năm {year} vạn sự như ý, công việc thuận lợi và gia đình luôn ấm êm, hạnh phúc.",
     ],
     ("tet_duong", "T-1"): [
-        "Năm mới {year} sắp đến rồi! {Xung} kính gửi lời chúc sớm đến {cal} {name}: chúc {cal} năm mới vạn sự như ý, bình an và thịnh vượng ạ 🎊",
-        "Còn một ngày nữa là năm mới {year} rồi {cal} {name} ơi! Chúc {cal} đón năm mới vui vẻ, mọi điều tốt đẹp sẽ đến trong năm mới nhé 🎆🥳",
-        "{Xung} chúc {cal} {name} năm mới {year} an khang thịnh vượng! Chúc {cal} và gia đình đón năm mới thật hạnh phúc ạ 🎉🌟",
-        "Sắp đón năm mới {year} rồi! {Xung} kính chúc {cal} {name} một năm mới tràn đầy sức khoẻ, may mắn và niềm vui 🎊",
+        "Năm mới {year} sắp đến rồi! {Xung} xin gửi {cal} {name} lời chúc sớm: một năm mới an khang, thịnh vượng và nhiều may mắn ạ.",
+        "Chỉ còn một ngày nữa là sang năm {year}. {Xung} chúc {cal} {name} đón năm mới bình an, sức khoẻ dồi dào và mọi việc hanh thông nhé.",
+        "Sắp chào năm mới {year} rồi {cal} {name} ơi. Chúc {cal} một năm tràn đầy năng lượng, công việc thuận lợi và gia đình hạnh phúc ạ 🎉",
+        "{Xung} kính chúc {cal} {name} đón năm mới {year} thật vui, khởi đầu thuận lợi và gặt hái nhiều thành công trong năm nay.",
     ],
     ("tet_am", "T-0"): [
-        "Chúc mừng năm mới {lunar_year}! {Xung} kính chúc {cal} {name} Tết đến vạn sự như ý, bình an và thịnh vượng ạ 🧧🎊",
-        "Tết {lunar_year} đến rồi! Chúc {cal} {name} năm mới tràn đầy sức khoẻ, hạnh phúc và tài lộc. Shop kính chúc {cal} một mùa Tết thật trọn vẹn nhé 🧧🌸",
-        "{Xung} kính chúc {cal} {name} năm mới {lunar_year} an khang thịnh vượng, gia đình sum vầy và mọi điều ước đều thành hiện thực ạ 🎉🧧",
-        "Chúc {cal} {name} đón Tết {lunar_year} vui vẻ! Năm mới chúc {cal} dồi dào sức khoẻ, công việc thuận lợi và vạn sự hanh thông 🧧🎊",
+        "Chúc mừng năm mới {lunar_year}! {Xung} kính chúc {cal} {name} một năm an khang, thịnh vượng và vạn sự như ý ạ 🧧",
+        "Nhân dịp Tết {lunar_year}, {xung} xin gửi {cal} {name} lời chúc sức khoẻ, bình an và tài lộc. Chúc {cal} cùng gia đình một năm mới thật ấm áp, sung túc nhé.",
+        "Năm mới {lunar_year}, {xung} kính chúc {cal} {name} dồi dào sức khoẻ, công việc hanh thông và gia đình sum vầy hạnh phúc ạ.",
+        "Chúc {cal} {name} đón Tết {lunar_year} an lành. Chúc {cal} một năm mới nhiều may mắn, thuận lợi trong công việc và vạn sự bình an.",
     ],
     ("tet_am", "T-1"): [
-        "Tết {lunar_year} sắp đến rồi! {Xung} kính gửi lời chúc sớm đến {cal} {name}: chúc {cal} đón Tết vui vẻ, bình an và thịnh vượng ạ 🧧",
-        "Còn một ngày nữa là Tết {lunar_year} rồi {cal} {name} ơi! Chúc {cal} và gia đình đón Tết thật vui, năm mới nhiều sức khoẻ và hạnh phúc nhé 🌸🧧",
-        "{Xung} chúc {cal} {name} chuẩn bị đón Tết {lunar_year} thật vui! Năm mới kính chúc {cal} vạn sự như ý, an khang và thịnh vượng ạ 🎊🧧",
-        "Sắp đến Tết {lunar_year} rồi! {Xung} kính chúc {cal} {name} năm mới bình an, tài lộc dồi dào và gia đình hạnh phúc nhé 🧧🎉",
+        "Tết {lunar_year} sắp đến rồi! {Xung} xin gửi {cal} {name} lời chúc sớm: một năm mới an khang, thịnh vượng và bình an ạ 🧧",
+        "Chỉ còn một ngày nữa là Tết {lunar_year}. {Xung} chúc {cal} {name} cùng gia đình đón năm mới thật ấm áp, sức khoẻ dồi dào và nhiều tài lộc nhé.",
+        "Sắp đón Tết {lunar_year} rồi {cal} {name} ơi. {Xung} kính chúc {cal} một năm mới vạn sự như ý, công việc thuận lợi và an khang ạ.",
+        "{Xung} kính chúc {cal} {name} đón Tết {lunar_year} bình an, khởi đầu năm mới thuận lợi và gia đình luôn hạnh phúc, sung túc.",
     ],
 }
 
@@ -91,6 +84,9 @@ _EVENT_LABELS = {
 def build_message(event: Event, salutation: tuple[str, str]) -> str:
     """Build a Telegram HTML message for one event.
 
+    Ưu tiên lời chúc do Gemini sinh (Phase 2); nếu AI không dùng được thì rơi
+    về template cố định (Phase 1). Cả hai đóng khung Telegram giống nhau.
+
     Args:
         event:      Event dataclass from events.py
         salutation: (cal_khach, xung_minh) from salutation.py
@@ -98,33 +94,45 @@ def build_message(event: Event, salutation: tuple[str, str]) -> str:
     Returns:
         HTML string ready for Telegram sendMessage (parse_mode=HTML).
     """
+    wishes = generate_wishes(event, salutation)
+    if wishes is None:
+        wishes = _template_wishes(event, salutation)
+
+    return _wrap_telegram(event, wishes)
+
+
+def _template_wishes(event: Event, salutation: tuple[str, str]) -> list[str]:
+    """Chọn ngẫu nhiên 2–3 câu chúc template và thay biến (Phase 1)."""
     cal, xung = salutation
-    name_safe = html.escape(str(event.customer.get("name", "")))
-
-    lunar_year = _lunar_year_name(event.year)
-
     vars_: dict[str, str] = {
         "cal": cal,
-        "name": name_safe,
+        "name": str(event.customer.get("name", "")),
         "xung": xung,
         "Xung": xung[0].upper() + xung[1:] if xung else xung,
         "year": str(event.year),
-        "lunar_year": lunar_year,
+        "lunar_year": lunar_year_name(event.year),
     }
 
     pool = _TEMPLATES.get((event.event_type, event.notify_type), [])
     n = min(len(pool), random.randint(2, 3))
     chosen = random.sample(pool, n)
+    return [_render(t, vars_) for t in chosen]
 
+
+def _wrap_telegram(event: Event, wishes: list[str]) -> str:
+    """Đóng khung danh sách câu chúc (plain text) thành 1 tin Telegram HTML.
+
+    Escape ở đây một lần cho toàn bộ nội dung — bất kể nguồn là template hay AI —
+    nên tên khách hoặc câu chúc chứa `<`, `>`, `&` đều an toàn với parse_mode=HTML.
+    """
+    name_safe = html.escape(str(event.customer.get("name", "")))
     event_label = html.escape(_EVENT_LABELS.get(event.event_type, event.event_type))
     header = (
         f"<b>👤 {name_safe}</b> · <b>{event_label}</b> · {event.notify_type}\n\n"
         "Lời chúc gợi ý (copy để gửi Zalo):"
     )
 
-    wish_blocks = "\n\n".join(
-        f"<pre>{_render(t, vars_)}</pre>" for t in chosen
-    )
+    wish_blocks = "\n\n".join(f"<pre>{html.escape(w)}</pre>" for w in wishes)
 
     return f"{header}\n\n{wish_blocks}"
 
@@ -134,9 +142,9 @@ def _render(template: str, vars_: dict[str, str]) -> str:
 
     Using plain replacement (not .format) so that customer names containing
     curly braces — e.g. "{year}" or an unknown "{foo}" — cannot inject template
-    values or raise KeyError. html.escape does not touch braces, so {name} is
-    substituted LAST: any braces inside the name itself are left as literal
-    text instead of being re-expanded as placeholders.
+    values or raise KeyError. {name} is substituted LAST so any braces inside
+    the name itself are left as literal text instead of being re-expanded as
+    placeholders. HTML-escaping happens later in `_wrap_telegram`.
     """
     result = template
     for key, val in vars_.items():

@@ -6,7 +6,8 @@ import re
 import pytest
 
 from src.events import Event
-from src.messages import build_message, _lunar_year_name
+from src.lunar import lunar_year_name
+from src.messages import build_message
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ def _event(name: str = "Lan", event_type: str = "birthday",
     (2034, "Giáp Dần"),   # 10-cycle wrap for Can
 ])
 def test_lunar_year_name(solar_year: int, expected: str):
-    assert _lunar_year_name(solar_year) == expected
+    assert lunar_year_name(solar_year) == expected
 
 
 def test_lunar_year_name_snake_year():
@@ -44,8 +45,8 @@ def test_lunar_year_name_snake_year():
 
     Affects all Snake years (2025 Ất Tỵ, 2013 Quý Tỵ, ...).
     """
-    assert _lunar_year_name(2025) == "Ất Tỵ"
-    assert _lunar_year_name(2013) == "Quý Tỵ"
+    assert lunar_year_name(2025) == "Ất Tỵ"
+    assert lunar_year_name(2013) == "Quý Tỵ"
 
 
 # ---------------------------------------------------------------------------

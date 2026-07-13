@@ -27,3 +27,10 @@ TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 GOOGLE_CREDENTIALS_JSON: str = os.getenv("GOOGLE_CREDENTIALS_JSON", "").strip()
 GOOGLE_CREDENTIALS_FILE: str = os.getenv("GOOGLE_CREDENTIALS_FILE", "").strip()
+
+# ── Phase 2: Gemini sinh lời chúc ──────────────────────────────────────────
+# USE_AI bật/tắt việc gọi Gemini. Khi tắt (hoặc thiếu key, hoặc API lỗi) hệ
+# thống rơi về template cố định của Phase 1 — bot không bao giờ im lặng.
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.1-flash-lite"
+USE_AI: bool = os.getenv("USE_AI", "1").strip().lower() in ("1", "true", "yes")

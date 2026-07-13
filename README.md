@@ -4,7 +4,9 @@ Bot tự động: mỗi sáng 8h (giờ VN), quét Google Sheet khách hàng, ph
 sinh nhật / Tết Tây / Tết Âm rơi vào hôm nay hoặc ngày mai, rồi gửi lời chúc
 soạn sẵn về Telegram để bạn copy sang Zalo gửi khách.
 
-Phase 1 (hiện tại): template lời chúc cố định, không dùng AI.
+Phase 2 (hiện tại): Gemini sinh lời chúc, template cố định làm fallback. Khi
+thiếu `GEMINI_API_KEY`, tắt `USE_AI`, hoặc Gemini lỗi/quá tải, bot tự dùng lại
+template Phase 1 — không bao giờ im lặng.
 
 ## Setup từ đầu
 
@@ -58,7 +60,16 @@ Copy `SHEET_ID` từ URL của Sheet:
    (thay `<TOKEN>` bằng token thật). Tìm trường `"chat":{"id": ...}` trong kết
    quả JSON — đó là `TELEGRAM_CHAT_ID`.
 
-### 4. Cấu hình `.env`
+### 4. Tạo Gemini API key (để AI sinh lời chúc)
+
+1. Vào [Google AI Studio → API keys](https://aistudio.google.com/apikey).
+2. Bấm **Create API key** (chọn hoặc tạo 1 Google Cloud project). Key có dạng
+   `AIza...` — **đây là bí mật, không commit lên Git**.
+3. Gói miễn phí đủ dùng cho lượng khách nhỏ (mỗi ngày bot chỉ gọi API cho vài
+   sự kiện). Nếu chưa muốn dùng AI, có thể bỏ trống và đặt `USE_AI=0` — bot sẽ
+   dùng template cố định.
+
+### 5. Cấu hình `.env`
 
 ```bash
 cp .env.example .env
@@ -71,6 +82,8 @@ SHEET_ID=<sheet id từ bước 1>
 TELEGRAM_BOT_TOKEN=<token từ bước 3>
 TELEGRAM_CHAT_ID=<chat id từ bước 3>
 GOOGLE_CREDENTIALS_FILE=<đường dẫn tới file JSON từ bước 2>
+GEMINI_API_KEY=<api key từ bước 4>
+USE_AI=1
 DRY_RUN=1
 ```
 
@@ -78,30 +91,32 @@ DRY_RUN=1
 > trên GitHub Actions, dùng `GOOGLE_CREDENTIALS_JSON` (dán nguyên nội dung file
 > JSON vào 1 GitHub Secret).
 
-### 5. Chạy thử
+### 6. Chạy thử
 
 ```bash
 pip install -r requirements.txt
-pytest tests/                        # 144 unit test, không cần credentials
+pytest tests/                        # unit test, không cần credentials
 
 python -m src.main                   # đọc .env tự động (nhờ python-dotenv)
                                       # DRY_RUN=1 trong .env → chỉ in ra,
                                       # KHÔNG gửi Telegram / KHÔNG ghi log
 ```
 
-Nếu thấy đúng danh sách khách cần chúc hôm nay/ngày mai in ra màn hình → sửa
-`DRY_RUN=0` trong `.env` để gửi thật, rồi chạy lại `python -m src.main`.
+Với `DRY_RUN=1`, bot **vẫn gọi Gemini** để bạn xem trước lời chúc AI thật (chỉ
+chặn bước gửi Telegram + ghi log). Nếu thấy đúng danh sách và lời chúc ưng ý →
+sửa `DRY_RUN=0` trong `.env` để gửi thật, rồi chạy lại `python -m src.main`.
 
 ## Triển khai tự động (GitHub Actions)
 
 1. Push code lên GitHub repo (đừng commit `.env` hay file JSON credentials —
    đã có trong `.gitignore`).
 2. Vào repo → **Settings → Secrets and variables → Actions → New repository
-   secret**, thêm 4 secret:
+   secret**, thêm 5 secret:
    - `SHEET_ID`
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
    - `GOOGLE_CREDENTIALS_JSON` (dán nguyên nội dung file JSON, 1 dòng)
+   - `GEMINI_API_KEY` (key từ bước 4; bỏ qua nếu chạy không dùng AI)
 3. Vào tab **Actions** → chọn workflow **Daily Customer Care Bot** → **Run
    workflow** để chạy thử thủ công.
 4. Nếu ổn, workflow sẽ tự chạy mỗi ngày lúc 8h sáng giờ VN (cron
@@ -116,10 +131,11 @@ src/
   sheets.py      # auth service account; load_customers(), load_sent_log(), append_sent_rows()
   events.py      # quét sự kiện T-1/T-0 + Tết toàn cục; lọc theo sent_log; trả list Event
   salutation.py  # (tuổi, giới tính) -> nhóm xưng hô (gọi khách / mình xưng)
-  messages.py    # template engine: chào + nội dung theo dịp + đuôi; random 2–3 biến thể
+  gemini.py      # Phase 2: gọi Gemini (REST) sinh 2–3 lời chúc; lỗi -> None (fallback)
+  messages.py    # build_message: ưu tiên AI, fallback template; đóng khung Telegram <pre>
   telegram.py    # sendMessage (1 tin/khách), bọc lời chúc trong <pre> để copy
   main.py        # orchestrator: đọc -> quét -> render -> gửi -> ghi log
-tests/                                # 144 unit test, không cần credentials thật
+tests/                                # unit test, không cần credentials thật
 .github/workflows/daily.yml           # cron '0 1 * * *' (= 8h VN) + workflow_dispatch
 ```
 
