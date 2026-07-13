@@ -110,7 +110,7 @@ python -m src.main                   # chạy thật
 - [x] `tests/test_lunar.py`, `tests/test_events.py` — _mở rộng thêm
       test_config.py, test_salutation.py, test_events_extra.py,
       test_messages_extra.py, test_telegram.py, test_main.py_
-- [x] `pytest` xanh hết — _144 passed_
+- [x] `pytest` xanh hết — _148 passed_
 
 **Milestone B — I/O tích hợp (cần Google Sheet + Telegram bot):**
 
@@ -118,22 +118,37 @@ python -m src.main                   # chạy thật
 - [x] `src/telegram.py`
 - [x] `src/main.py`
 - [x] Chạy `DRY_RUN=1` thấy đúng danh sách tin — _verify với Sheet thật (67
-      khách active), phát hiện đúng 1 sự kiện birthday T-1 (NGUYEN THI HONG
-      LIEN, 14/07), xưng hô + template + DRY_RUN gate đều đúng_
+      khách active), phát hiện đúng 1 sự kiện birthday, xưng hô + template +
+      DRY_RUN gate đều đúng_
 
 **Milestone C — Đóng gói & tự động hóa:**
 
 - [x] `.github/workflows/daily.yml`
 - [x] `README.md` (checklist setup từ đầu)
-- [ ] Chạy thử trên GitHub Actions (workflow_dispatch) thành công
+- [x] Chạy thử trên GitHub Actions (workflow_dispatch) thành công — _real run
+      trên repo Ptuancuong/telegram-bot: 67 khách, 1 sự kiện (NGUYEN THI HONG
+      LIEN, birthday, T-0, 14/07/2026), gửi Telegram thật + ghi sent_log,
+      người dùng xác nhận nhận được tin_
 
-> Trạng thái hiện tại: **Milestone A + B xong hoàn toàn**. Code đã qua
-> code-reviewer (fix 1 blocking: template injection qua tên khách) và
-> qa-tester (fix 1 bug thật: sai ký tự "Tỵ" cho năm Rắn, ảnh hưởng 2025). Đã
-> thêm `python-dotenv` để `.env` tự nạp khi chạy `python -m src.main` (trước đó
-> chỉ set qua shell). Đã verify `DRY_RUN=1` với Sheet thật (67 khách, service
-> account `mycustomerbot`) — phát hiện đúng 1 birthday T-1. Lưu ý dữ liệu thật
-> ban đầu bị lỗi định dạng `birth_date` (dán nhầm cột kiểu Mỹ m/d/yyyy thay vì
-> dd/mm/yyyy) — người dùng đã tự sửa tay, đã verify lại sạch 100%.
+## Phase 1: HOÀN TẤT
+
+> Toàn bộ 3 milestone đã xong, verify end-to-end trên production (Google
+> Sheet thật + Telegram thật + GitHub Actions thật). Các sự cố đã gặp và xử
+> lý trong quá trình làm, để tham khảo nếu tái diễn:
+>
+> - Code đã qua code-reviewer (fix 1 blocking: template injection qua tên
+>   khách) và qa-tester (fix 1 bug thật: sai ký tự "Tỵ" cho năm Rắn).
+> - Thêm `python-dotenv` để `.env` tự nạp (trước đó phải set env var qua
+>   shell thủ công).
+> - Dữ liệu thật ban đầu có `birth_date` sai định dạng (dán nhầm cột kiểu Mỹ
+>   m/d/yyyy) — người dùng tự sửa tay, verify lại sạch 100% bằng script kiểm
+>   tra 2 lớp (parse-fail + ambiguous day/month swap).
+> - GitHub Secrets (SHEET_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID) bị dính
+>   newline thừa khi copy-paste → gspread 404 SpreadsheetNotFound. Debug bằng
+>   step in độ dài secret (không lộ giá trị). Fix tận gốc: `config.py` giờ
+>   `.strip()` toàn bộ env var thay vì yêu cầu copy-paste cẩn thận.
+>
+> Phase 2 (Gemini sinh lời chúc) — xem mục "Trạng thái" đầu file, chưa làm,
+> chỉ bắt đầu khi người dùng yêu cầu rõ.
 > Milestone C còn thiếu chạy thử GitHub Actions (workflow_dispatch) — cần
 > push code lên GitHub + set 4 secrets trước.
