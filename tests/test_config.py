@@ -79,6 +79,26 @@ def test_dry_run_env_parsing(val: str, expected: bool):
     import src.config  # noqa: F401
 
 
+# ---------------------------------------------------------------------------
+# Trailing whitespace/newline in env vars must be stripped — this bit us for
+# real in GitHub Secrets, where a copy-pasted value silently gained a
+# trailing "\n" and broke Google Sheets API lookups with a 404.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("var_name", [
+    "SHEET_ID", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "GOOGLE_CREDENTIALS_JSON",
+])
+def test_env_vars_are_stripped_of_trailing_newline(var_name: str):
+    with patch.dict("os.environ", {var_name: "value123\n"}), patch("dotenv.load_dotenv"):
+        if "src.config" in sys.modules:
+            del sys.modules["src.config"]
+        import src.config as cfg
+        assert getattr(cfg, var_name) == "value123"
+    if "src.config" in sys.modules:
+        del sys.modules["src.config"]
+    import src.config  # noqa: F401
+
+
 def test_dry_run_default_is_false():
     """When DRY_RUN env var is not set, default is False.
 

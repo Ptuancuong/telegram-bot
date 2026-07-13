@@ -23,20 +23,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Debug secrets (length only, no values printed)
-        env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-        run: |
-          echo "SHEET_ID length: ${#SHEET_ID} (expect 44)"
-          echo "TELEGRAM_BOT_TOKEN length: ${#TELEGRAM_BOT_TOKEN} (expect ~46)"
-          echo "TELEGRAM_CHAT_ID length: ${#TELEGRAM_CHAT_ID} (expect ~10)"
-          echo "GOOGLE_CREDENTIALS_JSON length: ${#GOOGLE_CREDENTIALS_JSON} (expect ~2300+)"
-          echo "GOOGLE_CREDENTIALS_JSON first char: ${GOOGLE_CREDENTIALS_JSON:0:1} (expect {)"
-          echo "GOOGLE_CREDENTIALS_JSON last char: ${GOOGLE_CREDENTIALS_JSON: -1} (expect })"
-
       - name: Run bot
         env:
           SHEET_ID: ${{ secrets.SHEET_ID }}

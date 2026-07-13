@@ -19,8 +19,11 @@ def tomorrow_vn() -> date:
 
 DRY_RUN: bool = os.getenv("DRY_RUN", "0").strip().lower() in ("1", "true", "yes")
 
-SHEET_ID: str = os.getenv("SHEET_ID", "")
-TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
-GOOGLE_CREDENTIALS_JSON: str = os.getenv("GOOGLE_CREDENTIALS_JSON", "")
-GOOGLE_CREDENTIALS_FILE: str = os.getenv("GOOGLE_CREDENTIALS_FILE", "")
+# .strip() guards against trailing newline/whitespace commonly introduced when
+# copy-pasting values into GitHub Secrets or .env files (e.g. SHEET_ID becoming
+# "...Vo\n" instead of "...Vo", which silently breaks Google API lookups).
+SHEET_ID: str = os.getenv("SHEET_ID", "").strip()
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+GOOGLE_CREDENTIALS_JSON: str = os.getenv("GOOGLE_CREDENTIALS_JSON", "").strip()
+GOOGLE_CREDENTIALS_FILE: str = os.getenv("GOOGLE_CREDENTIALS_FILE", "").strip()
