@@ -120,6 +120,17 @@ def test_phone_restores_dropped_leading_zero():
     assert "<code>0917035969</code>" in msg
 
 
+def test_phone_9digits_with_leading_zero_not_double_prefixed():
+    """Số 9 chữ số nhưng ĐÃ có 0 đầu (vd 078489939) → giữ nguyên, không thêm 0."""
+    ev = Event(
+        customer={"name": "Lan", "birth_date": "15/06/1990", "phone": "078489939"},
+        event_type="birthday", notify_type="T-0", year=2025,
+    )
+    msg = build_message(ev, ("em", "anh"))
+    assert "<code>078489939</code>" in msg
+    assert "0078489939" not in msg
+
+
 def test_phone_kept_when_already_has_zero():
     """SĐT lưu đúng dạng text (10 số, có 0 đầu) → giữ nguyên, không thêm nữa."""
     ev = Event(

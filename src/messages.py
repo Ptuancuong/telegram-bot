@@ -146,12 +146,12 @@ def _format_phone(raw: str) -> str:
     """Chuẩn hoá SĐT để hiển thị.
 
     Google Sheets hay tự cắt số 0 đầu khi ô định dạng kiểu số
-    (0917035969 → 917035969). SĐT di động VN là 10 số bắt đầu bằng 0, nên nếu
-    thấy chuỗi TOÀN SỐ dài đúng 9 (đặc trưng đã bị rớt số 0) thì thêm lại '0'.
-    Trường hợp lưu đúng dạng text (đủ số 0) thì giữ nguyên.
+    (0917035969 → 917035969). Ca bị cắt cho ra chuỗi 9 số KHÔNG bắt đầu bằng 0,
+    nên chỉ khi đó mới thêm lại '0'. Số đã đúng dạng text (còn số 0 đầu, dù chỉ
+    9 số như '078489939') thì giữ nguyên — tránh biến thành '0078489939'.
     """
     p = raw.strip()
-    if p.isdigit() and len(p) == 9:
+    if p.isdigit() and len(p) == 9 and not p.startswith("0"):
         p = "0" + p
     return p
 
