@@ -42,10 +42,30 @@ def load_customers() -> list[dict[str, Any]]:
     return [r for r in records if str(r.get("active", "")).upper() == "TRUE"]
 
 
+# Cột bắt buộc để dựng khoá chống trùng. Nếu dòng header của tab sent_log bị
+# xoá/sai, gspread sẽ hiểu nhầm dòng dữ liệu đầu là header → load_sent_log trả
+# về rỗng → bot gửi LẶP âm thầm. Ta kiểm header và báo lỗi rõ thay vì để hỏng.
+_SENT_LOG_REQUIRED = {"customer_name", "event_type", "notify_type", "year"}
+
+
 def load_sent_log() -> set[tuple[str, str, str, str]]:
     """Return a set of (customer_name, event_type, notify_type, year) strings."""
     client = _get_client()
     ws = client.open_by_key(SHEET_ID).worksheet("sent_log")
+
+    values = ws.get_all_values()
+    if not values:
+        return set()
+
+    header = [h.strip() for h in values[0]]
+    missing = _SENT_LOG_REQUIRED - set(header)
+    if missing:
+        raise ValueError(
+            f"Tab 'sent_log' thiếu cột header {sorted(missing)} (thấy: {header}). "
+            "Dòng đầu phải là: date_sent | customer_name | event_type | notify_type | year. "
+            "Thiếu header → chống trùng hỏng, bot sẽ gửi lặp. Hãy thêm lại dòng tiêu đề."
+        )
+
     records = ws.get_all_records()
     return {
         (
