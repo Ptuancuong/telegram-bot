@@ -129,7 +129,7 @@ def _wrap_telegram(event: Event, wishes: list[str]) -> str:
     event_label = html.escape(_EVENT_LABELS.get(event.event_type, event.event_type))
     # Số điện thoại (cột 'phone' trong Sheet, nếu có) — để nhân viên tra nhanh.
     # Bọc <code> để Telegram cho chạm-copy số.
-    phone = str(event.customer.get("phone", "")).strip()
+    phone = _format_phone(str(event.customer.get("phone", "")))
     phone_line = f"\n📱 <code>{html.escape(phone)}</code>" if phone else ""
     header = (
         f"<b>👤 {name_safe}</b> · <b>{event_label}</b> · {event.notify_type}"
@@ -140,6 +140,20 @@ def _wrap_telegram(event: Event, wishes: list[str]) -> str:
     wish_blocks = "\n\n".join(f"<pre>{html.escape(w)}</pre>" for w in wishes)
 
     return f"{header}\n\n{wish_blocks}"
+
+
+def _format_phone(raw: str) -> str:
+    """Chuẩn hoá SĐT để hiển thị.
+
+    Google Sheets hay tự cắt số 0 đầu khi ô định dạng kiểu số
+    (0917035969 → 917035969). SĐT di động VN là 10 số bắt đầu bằng 0, nên nếu
+    thấy chuỗi TOÀN SỐ dài đúng 9 (đặc trưng đã bị rớt số 0) thì thêm lại '0'.
+    Trường hợp lưu đúng dạng text (đủ số 0) thì giữ nguyên.
+    """
+    p = raw.strip()
+    if p.isdigit() and len(p) == 9:
+        p = "0" + p
+    return p
 
 
 def _render(template: str, vars_: dict[str, str]) -> str:

@@ -110,6 +110,27 @@ def test_header_shows_phone_when_present():
     assert msg.index("0901234567") < msg.index("<pre>")
 
 
+def test_phone_restores_dropped_leading_zero():
+    """SĐT bị Google Sheets cắt số 0 (9 chữ số) → tự thêm lại '0' khi hiển thị."""
+    ev = Event(
+        customer={"name": "Lan", "birth_date": "15/06/1990", "phone": "917035969"},
+        event_type="birthday", notify_type="T-0", year=2025,
+    )
+    msg = build_message(ev, ("em", "anh"))
+    assert "<code>0917035969</code>" in msg
+
+
+def test_phone_kept_when_already_has_zero():
+    """SĐT lưu đúng dạng text (10 số, có 0 đầu) → giữ nguyên, không thêm nữa."""
+    ev = Event(
+        customer={"name": "Lan", "birth_date": "15/06/1990", "phone": "0917035969"},
+        event_type="birthday", notify_type="T-0", year=2025,
+    )
+    msg = build_message(ev, ("em", "anh"))
+    assert "<code>0917035969</code>" in msg
+    assert "00917035969" not in msg
+
+
 def test_header_no_phone_line_when_absent():
     """Không có phone (hoặc rỗng) → không có dòng 📱, tiêu đề như cũ."""
     msg = build_message(_event(name="Lan"), ("em", "anh"))
