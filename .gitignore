@@ -1,0 +1,14 @@
+# Secrets / credentials
+.env
+credentials.json
+*.key.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Temp
+_docx_extract/
