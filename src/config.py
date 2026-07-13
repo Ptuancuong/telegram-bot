@@ -25,6 +25,12 @@ DRY_RUN: bool = os.getenv("DRY_RUN", "0").strip().lower() in ("1", "true", "yes"
 SHEET_ID: str = os.getenv("SHEET_ID", "").strip()
 TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+
+# Có thể gửi cho NHIỀU người nhận: đặt nhiều id ngăn cách bằng dấu phẩy trong
+# TELEGRAM_CHAT_ID, vd "111,222" → bot gửi cùng lúc cho cả hai (nhân viên + bạn).
+TELEGRAM_CHAT_IDS: list[str] = [
+    c.strip() for c in TELEGRAM_CHAT_ID.replace(";", ",").split(",") if c.strip()
+]
 GOOGLE_CREDENTIALS_JSON: str = os.getenv("GOOGLE_CREDENTIALS_JSON", "").strip()
 GOOGLE_CREDENTIALS_FILE: str = os.getenv("GOOGLE_CREDENTIALS_FILE", "").strip()
 

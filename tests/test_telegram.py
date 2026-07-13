@@ -168,6 +168,21 @@ def test_send_passes_text():
         _cleanup()
 
 
+def test_send_to_multiple_recipients():
+    """TELEGRAM_CHAT_ID nhiều id ngăn bằng dấu phẩy → gửi cho từng người."""
+    tg, fake_req = _reload_telegram(dry_run=False, token="mytoken", chat_id="111, 222 ,333")
+    try:
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        fake_req.post.return_value = mock_resp
+        tg.send_message("hi")
+        assert fake_req.post.call_count == 3
+        sent_ids = [c[1]["json"]["chat_id"] for c in fake_req.post.call_args_list]
+        assert sent_ids == ["111", "222", "333"]
+    finally:
+        _cleanup()
+
+
 def test_raise_for_status_called():
     """HTTP error from Telegram must propagate (raise_for_status called)."""
     tg, fake_req = _reload_telegram(dry_run=False, token="mytoken", chat_id="mychat")

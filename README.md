@@ -58,7 +58,12 @@ Copy `SHEET_ID` từ URL của Sheet:
 5. Lấy `TELEGRAM_CHAT_ID` bằng cách mở trình duyệt, truy cập:
    `https://api.telegram.org/bot<TOKEN>/getUpdates`
    (thay `<TOKEN>` bằng token thật). Tìm trường `"chat":{"id": ...}` trong kết
-   quả JSON — đó là `TELEGRAM_CHAT_ID`.
+   quả JSON — đó là `TELEGRAM_CHAT_ID`. Lưu ý: bot chỉ gửi được cho người **đã
+   nhắn bot trước** (bấm Start), và `chat.id` là id của người gửi tin đó (không
+   phải của chủ token).
+   - **Gửi cho nhiều người** (vd nhân viên + bạn để theo dõi): đặt nhiều id ngăn
+     cách bằng dấu phẩy, ví dụ `TELEGRAM_CHAT_ID=111111,222222`. Mỗi người nhận
+     đều phải tự nhắn bot trước.
 
 ### 4. Tạo Gemini API key (để AI sinh lời chúc)
 
