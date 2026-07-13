@@ -17,10 +17,10 @@ fallback (`messages.py`).
 
 Nguồn yêu cầu gốc: `Workflow_tạo_customer_care_bot_đơn_giản.docx`.
 
-## Trạng thái: đang ở Phase 2
+## Trạng thái: Phase 2 HOÀN TẤT
 
 - **Phase 1 (XONG)**: template lời chúc cố định, verify end-to-end trên production.
-- **Phase 2 (đang làm)**: Gemini sinh lời chúc, template làm fallback.
+- **Phase 2 (XONG)**: Gemini sinh lời chúc, template làm fallback.
   - Toàn bộ logic AI ở `src/gemini.py` (REST + `requests`, không SDK ngoài).
     `generate_wishes()` trả `None` ở mọi lỗi (tắt cờ, thiếu key, network, quota,
     output rỗng) → `messages.build_message` rơi về template. Bot không im lặng.
@@ -28,15 +28,15 @@ Nguồn yêu cầu gốc: `Workflow_tạo_customer_care_bot_đơn_giản.docx`.
     (Phase 1) + `_wrap_telegram` (đóng khung + escape HTML dùng chung).
   - Cấu hình mới ở `config.py`: `GEMINI_API_KEY`, `GEMINI_MODEL`
     (mặc định `gemini-3.1-flash-lite`), `USE_AI` (mặc định bật).
-  - **Đã verify local (2026-07-14)**: gọi Gemini thật qua `build_message` OK —
-    xưng hô đúng, dùng được `note` khách, năm âm lịch đúng (Bính Ngọ 2026),
-    3 câu khác giọng điệu. Model mặc định cũ `gemini-2.5-flash` bị chặn với user
-    mới → đổi default sang **`gemini-3.1-flash-lite`** (đã test 200 OK).
-  - **Còn lại**: thêm secret `GEMINI_API_KEY` vào GitHub Actions rồi chạy thử
-    workflow_dispatch (bản tự động chưa verify với AI).
+  - Model mặc định cũ `gemini-2.5-flash` bị chặn với user mới → dùng
+    **`gemini-3.1-flash-lite`** (rẻ/nhanh, tiếng Việt tốt).
   - Ranh giới giữ nguyên: đừng trộn logic AI vào module khác ngoài `gemini.py`.
-  - Lưu ý bảo mật: qua review đã chuyển key sang header `x-goog-api-key` (không
-    để trong URL) tránh lộ key qua chuỗi lỗi HTTP in ra log Actions.
+  - Bảo mật: key đi qua header `x-goog-api-key` (không để trong URL) tránh lộ
+    qua chuỗi lỗi HTTP in ra log Actions.
+  - **Verify end-to-end trên production (2026-07-14)**: chạy GitHub Actions
+    (workflow_dispatch) → Gemini sinh lời chúc → gửi Telegram thật, người dùng
+    xác nhận nhận được tin. Văn phong "nhân viên ngân hàng" đã chốt.
+  - Phase 3 (nếu có sau này) chưa định nghĩa — chỉ làm khi người dùng yêu cầu rõ.
 
 ## Tech stack
 
