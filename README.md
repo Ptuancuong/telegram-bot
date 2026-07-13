@@ -16,14 +16,16 @@ Tạo 1 Google Sheet mới với 2 tab, đúng tên và đúng thứ tự cột:
 
 **Tab `customers`:**
 
-| name         | gender | birth_date | age_group | note | active |
-| ------------ | ------ | ---------- | --------- | ---- | ------ |
-| Nguyễn Văn A | Nam    | 15/06/1990 |           |      | TRUE   |
-| Trần Thị B   | Nữ     | 01/01/1985 |           |      | TRUE   |
+| name         | gender | birth_date | age_group | note | active | phone      |
+| ------------ | ------ | ---------- | --------- | ---- | ------ | ---------- |
+| Nguyễn Văn A | Nam    | 15/06/1990 |           |      | TRUE   | 0901234567 |
+| Trần Thị B   | Nữ     | 01/01/1985 |           |      | TRUE   |            |
 
 - `birth_date`: định dạng `dd/mm/yyyy`, luôn có đủ năm sinh.
 - `active`: `TRUE` để bot xử lý, `FALSE` để bỏ qua.
-- `gender`, `age_group`, `note`: có thể để trống nếu không cần.
+- `gender`, `age_group`, `note`, `phone`: có thể để trống nếu không cần.
+- `phone` (tuỳ chọn): nếu có sẽ hiện ở tiêu đề tin để nhân viên tra nhanh
+  (chạm số để copy). Đặt cột ở đâu cũng được, miễn header đúng tên `phone`.
 
 **Tab `sent_log`:** chỉ cần dòng tiêu đề, bot sẽ tự ghi thêm:
 

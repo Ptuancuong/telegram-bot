@@ -96,6 +96,31 @@ def test_header_contains_bold_name():
     assert "TestName" in msg
 
 
+def test_header_shows_phone_when_present():
+    """Có cột phone → hiện số trong tiêu đề, bọc <code> để chạm-copy."""
+    ev = Event(
+        customer={"name": "Lan", "gender": "Nữ", "birth_date": "15/06/1990",
+                  "phone": "0901234567"},
+        event_type="birthday", notify_type="T-0", year=2025,
+    )
+    msg = build_message(ev, ("em", "anh"))
+    assert "📱" in msg
+    assert "<code>0901234567</code>" in msg
+    # Số nằm ở phần tiêu đề, trước các khối lời chúc
+    assert msg.index("0901234567") < msg.index("<pre>")
+
+
+def test_header_no_phone_line_when_absent():
+    """Không có phone (hoặc rỗng) → không có dòng 📱, tiêu đề như cũ."""
+    msg = build_message(_event(name="Lan"), ("em", "anh"))
+    assert "📱" not in msg
+    ev_empty = Event(
+        customer={"name": "Lan", "birth_date": "15/06/1990", "phone": "   "},
+        event_type="birthday", notify_type="T-0", year=2025,
+    )
+    assert "📱" not in build_message(ev_empty, ("em", "anh"))
+
+
 # ---------------------------------------------------------------------------
 # Salutation substitution in wish bodies
 # ---------------------------------------------------------------------------

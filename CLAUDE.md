@@ -82,7 +82,9 @@ tests/
 ## Cấu trúc Google Sheet
 
 - Tab `customers`: `name | gender | birth_date | age_group | note | active`
-  (chỉ xử lý dòng `active` = TRUE).
+  (chỉ xử lý dòng `active` = TRUE). Cột **`phone`** (tuỳ chọn) nếu có sẽ hiện ở
+  tiêu đề tin, bọc `<code>` cho chạm-copy. gspread map theo tên cột nên `phone`
+  đặt ở đâu cũng được, miễn header đúng tên.
 - Tab `sent_log`: `date_sent | customer_name | event_type | notify_type | year`.
 
 ## Biến môi trường (xem `.env.example`)

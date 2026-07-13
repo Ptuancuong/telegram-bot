@@ -127,8 +127,13 @@ def _wrap_telegram(event: Event, wishes: list[str]) -> str:
     """
     name_safe = html.escape(str(event.customer.get("name", "")))
     event_label = html.escape(_EVENT_LABELS.get(event.event_type, event.event_type))
+    # Số điện thoại (cột 'phone' trong Sheet, nếu có) — để nhân viên tra nhanh.
+    # Bọc <code> để Telegram cho chạm-copy số.
+    phone = str(event.customer.get("phone", "")).strip()
+    phone_line = f"\n📱 <code>{html.escape(phone)}</code>" if phone else ""
     header = (
-        f"<b>👤 {name_safe}</b> · <b>{event_label}</b> · {event.notify_type}\n\n"
+        f"<b>👤 {name_safe}</b> · <b>{event_label}</b> · {event.notify_type}"
+        f"{phone_line}\n\n"
         "Lời chúc gợi ý (copy để gửi Zalo):"
     )
 
