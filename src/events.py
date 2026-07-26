@@ -10,6 +10,11 @@ from src.config import today_vn, tomorrow_vn
 from src.lunar import tet_solar_date
 
 
+# Tên "khách" giả cho tin nhắc Tết T-1 gộp chung (không theo từng khách). Cũng
+# dùng làm customer_name trong sent_log để chống trùng cho tin gộp này.
+AGGREGATE_CUSTOMER = "(tất cả khách)"
+
+
 @dataclass
 class Event:
     customer: dict[str, Any]
@@ -59,10 +64,24 @@ def scan_events(
     if today == date(today.year, 12, 31):
         tet_tay_checks.append((today, "T-1", today.year + 1))
 
+    # ── Tết T-1: 1 tin nhắc CHUNG cho toàn bộ khách (không theo từng người) ──
+    # Chỉ nhắc khi có ít nhất 1 khách; dedup theo (AGGREGATE_CUSTOMER, ...).
+    if customers:
+        for _match_date, notify_type, year in tet_tay_checks:
+            if notify_type == "T-1":
+                key = (AGGREGATE_CUSTOMER, "tet_duong", notify_type, str(year))
+                if key not in sent_log:
+                    events.append(Event({"name": AGGREGATE_CUSTOMER}, "tet_duong", notify_type, year))
+        for tet_date, notify_type, year in tet_am_candidates:
+            if today == tet_date and notify_type == "T-1":
+                key = (AGGREGATE_CUSTOMER, "tet_am", notify_type, str(year))
+                if key not in sent_log:
+                    events.append(Event({"name": AGGREGATE_CUSTOMER}, "tet_am", notify_type, year))
+
     for customer in customers:
         name = str(customer.get("name", ""))
 
-        # ── Sinh nhật ──────────────────────────────────────────────────────
+        # ── Sinh nhật (T-0 và T-1 đều nhắc riêng từng khách) ───────────────
         birth_str = str(customer.get("birth_date", "")).strip()
         if birth_str:
             bd = _parse_birth_date(birth_str)
@@ -76,15 +95,17 @@ def scan_events(
                         if key not in sent_log:
                             events.append(Event(customer, "birthday", notify_type, event_year))
 
-        # ── Tết Tây ────────────────────────────────────────────────────────
+        # ── Tết Tây T-0 (mỗi khách 1 tin kèm lời chúc; T-1 đã gộp ở trên) ──
         for _match_date, notify_type, year in tet_tay_checks:
+            if notify_type != "T-0":
+                continue
             key = (name, "tet_duong", notify_type, str(year))
             if key not in sent_log:
                 events.append(Event(customer, "tet_duong", notify_type, year))
 
-        # ── Tết Âm ─────────────────────────────────────────────────────────
+        # ── Tết Âm T-0 (T-1 đã gộp ở trên) ─────────────────────────────────
         for tet_date, notify_type, year in tet_am_candidates:
-            if today == tet_date:
+            if today == tet_date and notify_type == "T-0":
                 key = (name, "tet_am", notify_type, str(year))
                 if key not in sent_log:
                     events.append(Event(customer, "tet_am", notify_type, year))

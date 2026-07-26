@@ -53,23 +53,50 @@ def test_lunar_year_name_snake_year():
 # build_message: 2–3 <pre> blocks always produced
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("event_type,notify_type", [
-    ("birthday", "T-0"),
-    ("birthday", "T-1"),
-    ("tet_duong", "T-0"),
-    ("tet_duong", "T-1"),
-    ("tet_am", "T-0"),
-    ("tet_am", "T-1"),
-])
-def test_variant_count_2_or_3(event_type: str, notify_type: str):
-    """Every combination must produce exactly 2 or 3 <pre>…</pre> wish blocks."""
+@pytest.mark.parametrize("event_type", ["birthday", "tet_duong", "tet_am"])
+def test_variant_count_2_or_3(event_type: str):
+    """T-0 (đúng ngày) phải sinh đúng 2–3 khối <pre>…</pre> lời chúc."""
     # Run several times because of randomness
     for _ in range(20):
-        msg = build_message(_event(event_type=event_type, notify_type=notify_type), ("em", "anh"))
+        msg = build_message(_event(event_type=event_type, notify_type="T-0"), ("em", "anh"))
         blocks = re.findall(r"<pre>.*?</pre>", msg, re.DOTALL)
         assert 2 <= len(blocks) <= 3, (
-            f"{event_type}/{notify_type}: expected 2–3 blocks, got {len(blocks)}"
+            f"{event_type}/T-0: expected 2–3 blocks, got {len(blocks)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# T-1 (báo trước 1 ngày): tin nhắc ngắn, KHÔNG kèm khối lời chúc <pre>
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("event_type", ["birthday", "tet_duong", "tet_am"])
+def test_t1_is_short_reminder_without_wish_blocks(event_type: str):
+    """T-1 chỉ là tin nhắc, không có <pre> và không có mục 'Lời chúc gợi ý'."""
+    msg = build_message(_event(event_type=event_type, notify_type="T-1"), ("em", "anh"))
+    assert "<pre>" not in msg
+    assert "Lời chúc gợi ý" not in msg
+    assert "Ngày mai" in msg
+    assert "Nhắc trước" in msg
+
+
+def test_t1_reminder_contains_name_and_occasion():
+    msg = build_message(
+        _event(name="Nguyễn Văn A", event_type="birthday", notify_type="T-1"), ("anh", "em")
+    )
+    assert "Nguyễn Văn A" in msg
+    assert "sinh nhật" in msg
+
+
+def test_t1_reminder_skips_gemini(monkeypatch):
+    """T-1 không được gọi Gemini (tin nhắc là text cố định)."""
+    import src.messages as messages
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("generate_wishes không được gọi cho T-1")
+
+    monkeypatch.setattr(messages, "generate_wishes", _boom)
+    # Không raise ⇒ đã bỏ qua Gemini
+    build_message(_event(notify_type="T-1"), ("em", "anh"))
 
 
 # ---------------------------------------------------------------------------
@@ -84,10 +111,10 @@ def test_variant_count_2_or_3(event_type: str, notify_type: str):
     ("tet_am", "T-0", "Tết Âm lịch"),
     ("tet_am", "T-1", "Tết Âm lịch"),
 ])
-def test_header_contains_label_and_notify_type(event_type, notify_type, label):
+def test_header_contains_label(event_type, notify_type, label):
+    """Cả T-0 lẫn T-1 đều có nhãn dịp trong tiêu đề."""
     msg = build_message(_event(event_type=event_type, notify_type=notify_type), ("em", "anh"))
     assert label in msg
-    assert notify_type in msg
 
 
 def test_header_contains_bold_name():

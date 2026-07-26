@@ -96,11 +96,23 @@ def test_tet_tay_t0():
     assert all(e.year == 2025 for e in tet)
 
 
-def test_tet_tay_t1():
+def test_tet_tay_t1_is_single_aggregate():
+    """Tết Tây T-1: gộp thành 1 tin nhắc chung, không theo từng khách."""
+    from src.events import AGGREGATE_CUSTOMER
     events = _scan(date(2024, 12, 31), date(2025, 1, 1))
     tet = [e for e in events if e.event_type == "tet_duong" and e.notify_type == "T-1"]
-    assert len(tet) == 2
-    assert all(e.year == 2025 for e in tet)
+    assert len(tet) == 1
+    assert tet[0].year == 2025
+    assert tet[0].customer["name"] == AGGREGATE_CUSTOMER
+
+
+def test_tet_tay_t1_aggregate_dedup():
+    """Tin nhắc Tết T-1 gộp chỉ gửi 1 lần — dedup theo (AGGREGATE_CUSTOMER, …)."""
+    from src.events import AGGREGATE_CUSTOMER
+    sent_log = {(AGGREGATE_CUSTOMER, "tet_duong", "T-1", "2025")}
+    events = _scan(date(2024, 12, 31), date(2025, 1, 1), sent_log=sent_log)
+    tet = [e for e in events if e.event_type == "tet_duong" and e.notify_type == "T-1"]
+    assert len(tet) == 0
 
 
 def test_tet_tay_dedup():
@@ -125,12 +137,14 @@ def test_tet_am_t0_2025():
     assert all(e.year == 2025 for e in tet)
 
 
-def test_tet_am_t1_2025():
-    """T-1 for Tết Ất Tỵ: Jan 28 2025."""
+def test_tet_am_t1_2025_is_single_aggregate():
+    """T-1 for Tết Ất Tỵ (Jan 28 2025): gộp thành 1 tin nhắc chung."""
+    from src.events import AGGREGATE_CUSTOMER
     events = _scan(date(2025, 1, 28), date(2025, 1, 29))
     tet = [e for e in events if e.event_type == "tet_am" and e.notify_type == "T-1"]
-    assert len(tet) == 2
-    assert all(e.year == 2025 for e in tet)
+    assert len(tet) == 1
+    assert tet[0].year == 2025
+    assert tet[0].customer["name"] == AGGREGATE_CUSTOMER
 
 
 def test_tet_am_not_today():

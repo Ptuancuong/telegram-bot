@@ -31,6 +31,9 @@ from src.lunar import lunar_year_name
 # ---------------------------------------------------------------------------
 # 4 variants per (event_type, notify_type) → random.sample picks 2–3
 
+# Chỉ còn template cho T-0 (đúng ngày): mỗi khách 1 tin kèm 2–3 lời chúc để
+# chạm-copy gửi Zalo. T-1 (báo trước 1 ngày) KHÔNG dùng template ở đây nữa —
+# nó chỉ là 1 tin nhắc ngắn (xem `_reminder_message`), không sinh lời chúc.
 _TEMPLATES: dict[tuple[str, str], list[str]] = {
     ("birthday", "T-0"): [
         "Chúc mừng sinh nhật {cal} {name}! {Xung} kính chúc {cal} một tuổi mới thật nhiều sức khoẻ, bình an và mọi việc hanh thông ạ.",
@@ -38,35 +41,17 @@ _TEMPLATES: dict[tuple[str, str], list[str]] = {
         "Happy Birthday {cal} {name}! Chúc {cal} một ngày sinh nhật ấm áp bên gia đình, tuổi mới nhiều niềm vui và may mắn ạ 🎂",
         "Nhân ngày sinh nhật, {xung} chúc {cal} {name} luôn mạnh khoẻ, tinh thần thoải mái và công việc thuận lợi. Chúc {cal} có một ngày thật ý nghĩa nhé.",
     ],
-    ("birthday", "T-1"): [
-        "Ngày mai là sinh nhật {cal} {name} rồi! {Xung} xin gửi lời chúc sớm: chúc {cal} tuổi mới nhiều sức khoẻ, bình an và mọi điều tốt lành ạ.",
-        "{Xung} chúc mừng sinh nhật {cal} {name} trước một ngày. Chúc {cal} luôn mạnh khoẻ, vui vẻ và thành công trong công việc cũng như cuộc sống nhé.",
-        "Sắp tới sinh nhật {cal} {name} rồi. {Xung} kính chúc {cal} một tuổi mới an khang, thuận lợi và thật nhiều niềm vui ạ 🎂",
-        "Ngày mai {cal} {name} thêm một tuổi mới. Chúc {cal} luôn giữ được sức khoẻ, sự bình an và gặt hái nhiều điều như ý trong năm nay nhé.",
-    ],
     ("tet_duong", "T-0"): [
         "Chúc mừng năm mới {year}! {Xung} kính chúc {cal} {name} một năm dồi dào sức khoẻ, an khang và mọi việc hanh thông ạ.",
         "Nhân dịp năm mới {year}, {xung} xin gửi tới {cal} {name} lời chúc bình an, may mắn và thành công. Chúc {cal} cùng gia đình một năm thật trọn vẹn nhé.",
         "Happy New Year {cal} {name}! Chúc {cal} bước sang năm {year} với thật nhiều sức khoẻ, niềm vui và tài lộc ạ 🎉",
         "{Xung} kính chúc {cal} {name} năm {year} vạn sự như ý, công việc thuận lợi và gia đình luôn ấm êm, hạnh phúc.",
     ],
-    ("tet_duong", "T-1"): [
-        "Năm mới {year} sắp đến rồi! {Xung} xin gửi {cal} {name} lời chúc sớm: một năm mới an khang, thịnh vượng và nhiều may mắn ạ.",
-        "Chỉ còn một ngày nữa là sang năm {year}. {Xung} chúc {cal} {name} đón năm mới bình an, sức khoẻ dồi dào và mọi việc hanh thông nhé.",
-        "Sắp chào năm mới {year} rồi {cal} {name} ơi. Chúc {cal} một năm tràn đầy năng lượng, công việc thuận lợi và gia đình hạnh phúc ạ 🎉",
-        "{Xung} kính chúc {cal} {name} đón năm mới {year} thật vui, khởi đầu thuận lợi và gặt hái nhiều thành công trong năm nay.",
-    ],
     ("tet_am", "T-0"): [
         "Chúc mừng năm mới {lunar_year}! {Xung} kính chúc {cal} {name} một năm an khang, thịnh vượng và vạn sự như ý ạ 🧧",
         "Nhân dịp Tết {lunar_year}, {xung} xin gửi {cal} {name} lời chúc sức khoẻ, bình an và tài lộc. Chúc {cal} cùng gia đình một năm mới thật ấm áp, sung túc nhé.",
         "Năm mới {lunar_year}, {xung} kính chúc {cal} {name} dồi dào sức khoẻ, công việc hanh thông và gia đình sum vầy hạnh phúc ạ.",
         "Chúc {cal} {name} đón Tết {lunar_year} an lành. Chúc {cal} một năm mới nhiều may mắn, thuận lợi trong công việc và vạn sự bình an.",
-    ],
-    ("tet_am", "T-1"): [
-        "Tết {lunar_year} sắp đến rồi! {Xung} xin gửi {cal} {name} lời chúc sớm: một năm mới an khang, thịnh vượng và bình an ạ 🧧",
-        "Chỉ còn một ngày nữa là Tết {lunar_year}. {Xung} chúc {cal} {name} cùng gia đình đón năm mới thật ấm áp, sức khoẻ dồi dào và nhiều tài lộc nhé.",
-        "Sắp đón Tết {lunar_year} rồi {cal} {name} ơi. {Xung} kính chúc {cal} một năm mới vạn sự như ý, công việc thuận lợi và an khang ạ.",
-        "{Xung} kính chúc {cal} {name} đón Tết {lunar_year} bình an, khởi đầu năm mới thuận lợi và gia đình luôn hạnh phúc, sung túc.",
     ],
 }
 
@@ -87,6 +72,10 @@ def build_message(event: Event, salutation: tuple[str, str]) -> str:
     Ưu tiên lời chúc do Gemini sinh (Phase 2); nếu AI không dùng được thì rơi
     về template cố định (Phase 1). Cả hai đóng khung Telegram giống nhau.
 
+    - **T-1** (báo trước 1 ngày): chỉ 1 tin NHẮC ngắn ("Ngày mai là sinh nhật
+      …, nhớ gửi lời chúc"). Không gọi Gemini, không kèm khối lời chúc.
+    - **T-0** (đúng ngày): tin đầy đủ kèm 2–3 lời chúc để chạm-copy gửi Zalo.
+
     Args:
         event:      Event dataclass from events.py
         salutation: (cal_khach, xung_minh) from salutation.py
@@ -94,11 +83,50 @@ def build_message(event: Event, salutation: tuple[str, str]) -> str:
     Returns:
         HTML string ready for Telegram sendMessage (parse_mode=HTML).
     """
+    if event.notify_type == "T-1":
+        return _reminder_message(event, salutation)
+
     wishes = generate_wishes(event, salutation)
     if wishes is None:
         wishes = _template_wishes(event, salutation)
 
     return _wrap_telegram(event, wishes)
+
+
+def _reminder_message(event: Event, salutation: tuple[str, str]) -> str:
+    """Tin nhắc trước 1 ngày (T-1) — ngắn gọn, không kèm lời chúc.
+
+    - **Sinh nhật**: nhắc RIÊNG từng khách (kèm tên + SĐT) —
+      "Ngày mai là sinh nhật anh Nguyễn Văn A. Nhớ chuẩn bị lời chúc nhé!"
+    - **Tết dương/âm**: 1 tin nhắc CHUNG cho toàn bộ khách (không kèm tên) —
+      "Ngày mai là Tết Dương lịch (2027). Nhớ gửi lời chúc toàn bộ khách hàng nhé!"
+
+    Nội dung được escape HTML một lần (parse_mode=HTML).
+    """
+    event_label = html.escape(_EVENT_LABELS.get(event.event_type, event.event_type))
+
+    # Sinh nhật: nhắc riêng từng khách.
+    if event.event_type == "birthday":
+        cal, _ = salutation
+        name = str(event.customer.get("name", ""))
+        body = f"Ngày mai là sinh nhật {cal} {name}. Nhớ chuẩn bị lời chúc để mai gửi khách nhé!"
+        name_safe = html.escape(name)
+        phone = _format_phone(str(event.customer.get("phone", "")))
+        phone_line = f"\n📱 <code>{html.escape(phone)}</code>" if phone else ""
+        header = f"🔔 <b>Nhắc trước 1 ngày</b> · <b>{event_label}</b> · <b>{name_safe}</b>{phone_line}"
+        return f"{header}\n\n{html.escape(body)}"
+
+    # Tết dương/âm: 1 tin nhắc chung cho toàn bộ khách.
+    if event.event_type == "tet_duong":
+        occ = f"Tết Dương lịch ({event.year})"
+    elif event.event_type == "tet_am":
+        occ = f"Tết {lunar_year_name(event.year)} ({event.year} dương lịch)"
+    else:
+        occ = _EVENT_LABELS.get(event.event_type, event.event_type)
+
+    body = f"Ngày mai là {occ}. Nhớ gửi lời chúc cho toàn bộ khách hàng nhé!"
+    header = f"🔔 <b>Nhắc trước 1 ngày</b> · <b>{event_label}</b>"
+    return f"{header}\n\n{html.escape(body)}"
 
 
 def _template_wishes(event: Event, salutation: tuple[str, str]) -> list[str]:

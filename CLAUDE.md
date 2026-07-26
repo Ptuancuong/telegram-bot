@@ -6,9 +6,22 @@ Hướng dẫn cho Claude Code khi làm việc trong dự án này.
 
 Customer care bot đơn giản: mỗi sáng 8h (giờ VN), quét Google Sheet khách hàng,
 phát hiện ai có **sinh nhật / Tết Tây / Tết Âm** rơi vào **hôm nay (T-0)** hoặc
-**ngày mai (T-1)**, rồi gửi về **Telegram** của người phụ trách — mỗi khách 1 tin
-kèm **2–3 lời chúc** soạn sẵn (trong code block để chạm-copy, dán sang Zalo gửi
-khách). Có chống gửi trùng. Chạy tự động bằng **GitHub Actions cron**.
+**ngày mai (T-1)**, rồi gửi về **Telegram** của người phụ trách. Có chống gửi
+trùng. Chạy tự động bằng **GitHub Actions cron**.
+
+Hai loại tin theo `notify_type` (xử lý ở `messages.build_message`):
+
+- **T-1 (báo trước 1 ngày)** — tin **nhắc ngắn**, **không** gọi Gemini, **không**
+  kèm khối lời chúc (xem `messages._reminder_message`):
+  - **Sinh nhật**: nhắc **riêng từng khách** (kèm tên + SĐT) — "Ngày mai là sinh
+    nhật anh Nguyễn Văn A. Nhớ chuẩn bị lời chúc…".
+  - **Tết dương/âm**: **1 tin nhắc CHUNG** cho toàn bộ khách (không theo từng
+    người) — "Ngày mai là Tết Dương lịch (2026). Nhớ gửi lời chúc cho toàn bộ
+    khách hàng nhé!". Tin gộp này do `events.scan_events` phát **một** Event với
+    `customer.name = AGGREGATE_CUSTOMER` (`"(tất cả khách)"`); dedup dùng chính
+    tên giả đó làm `customer_name` trong `sent_log`.
+- **T-0 (đúng ngày)**: mỗi khách 1 tin kèm **2–3 lời chúc** soạn sẵn (trong
+  `<pre>` để chạm-copy, dán sang Zalo gửi khách) — cả sinh nhật lẫn Tết.
 
 **Persona/văn phong lời chúc**: nhân viên ngân hàng chăm sóc khách mình phụ
 trách — lịch sự, chân thành, đủ nghiêm túc mà không cứng nhắc, KHÔNG sến súa,
@@ -70,6 +83,8 @@ tests/
   - `event_type` ∈ `birthday | tet_duong | tet_am`
   - `notify_type` ∈ `T-1 | T-0`
   - `year` = năm **dương lịch** của sự kiện.
+  - Tin nhắc **Tết T-1 gộp** dùng `name = "(tất cả khách)"`
+    (`events.AGGREGATE_CUSTOMER`) nên chỉ gửi 1 lần/năm/dịp.
 - **birth_date**: định dạng `dd/mm/yyyy`, luôn đủ năm (chốt với người dùng). Tuổi =
   năm hiện tại − năm sinh.
 - **Xưng hô** (theo tuổi): `<35` gọi "em" / mình xưng "anh"; `35–60` gọi
