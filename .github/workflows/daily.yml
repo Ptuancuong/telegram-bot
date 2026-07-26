@@ -2,8 +2,17 @@ name: Daily Customer Care Bot
 
 on:
   schedule:
-    # 01:00 UTC = 08:00 Asia/Ho_Chi_Minh
-    - cron: '0 1 * * *'
+    # GitHub Actions cron là "best-effort", hay bị hoãn 10' đến vài giờ vào
+    # giờ cao điểm — nhất là các mốc TRÒN GIỜ (phút :00). Nên:
+    #   1) đặt sớm hơn 8h VN để hấp thụ độ trễ,
+    #   2) dùng phút LẺ (tránh mốc đông),
+    #   3) đặt NHIỀU mốc dự phòng — bot đã chống gửi trùng (sent_log), nên lần
+    #      chạy đầu thành công sẽ gửi, các lần sau tự dedup thành no-op vô hại.
+    # Giờ VN = UTC + 7.
+    - cron: '23 0 * * *'   # 07:23 VN
+    - cron: '43 0 * * *'   # 07:43 VN
+    - cron: '7 1 * * *'    # 08:07 VN
+    - cron: '37 1 * * *'   # 08:37 VN
   workflow_dispatch:
 
 jobs:
